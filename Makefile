@@ -3,6 +3,7 @@ VERSION=0.1.0
 
 TARGETDIR=target
 BUILDDIR=build
+TARGETBIN=${APP}-v${VERSION}
 
 COMMIT_ID:=$(shell git rev-parse HEAD)
 LDFLAGS=-ldflags "-linkmode external -extldflags -static -X main.Version=${VERSION} -X main.CommitID=${COMMIT_ID}"
@@ -16,7 +17,7 @@ GITHUB_USER=sdorra
 GITHUB_REPO=release-test
 
 .PHONY: default
-default: $(TARGETDIR)/$(APP) $(TARGETDIR)/$(APP).sha256sum $(TARGETDIR)/$(APP).asc
+default: $(TARGETDIR)/$(TARGETBIN) $(TARGETDIR)/$(TARGETBIN).sha256sum $(TARGETDIR)/$(TARGETBIN).asc
 
 $(TARGETDIR):
 	mkdir ${TARGETDIR}
@@ -30,7 +31,7 @@ $(PASSWD): $(BUILDDIR)
 $(HOMEDIR): $(BUILDDIR)
 	mkdir $(HOMEDIR)
 
-$(TARGETDIR)/$(APP): $(PASSWD) $(HOMEDIR) $(TARGETDIR)
+$(TARGETDIR)/$(TARGETBIN): $(PASSWD) $(HOMEDIR) $(TARGETDIR)
 	docker run --rm -ti \
 	 -e GOOS=linux \
 	 -e GOARCH=amd64 \
@@ -40,13 +41,13 @@ $(TARGETDIR)/$(APP): $(PASSWD) $(HOMEDIR) $(TARGETDIR)
 	 -v $(shell pwd):/go/src/github.com/cloudogu/${APP} \
 	 -w /go/src/github.com/cloudogu/${APP} \
 	 golang:1.10.1 \
-	 go build -a -tags netgo ${LDFLAGS} -installsuffix cgo -o $(TARGETDIR)/$(APP)
+	 go build -a -tags netgo ${LDFLAGS} -installsuffix cgo -o $(TARGETDIR)/$(TARGETBIN)
 
-$(TARGETDIR)/$(APP).sha256sum:
-	shasum -a 256 $(TARGETDIR)/$(APP) > $(TARGETDIR)/$(APP).sha256sum
+$(TARGETDIR)/$(TARGETBIN).sha256sum:
+	cd ${TARGETDIR}; shasum -a 256 ${TARGETBIN} > ${TARGETBIN}.sha256sum
 
-$(TARGETDIR)/$(APP).asc:
-	gpg --detach-sign -o $(TARGETDIR)/$(APP).asc $(TARGETDIR)/$(APP)
+$(TARGETDIR)/$(TARGETBIN).asc:
+	gpg --detach-sign -o ${TARGETDIR}/${TARGETBIN}.asc ${TARGETDIR}/${TARGETBIN}
 
 .PHONY: tag
 tag:
@@ -69,22 +70,22 @@ release: default tag push
 		--user ${GITHUB_USER} \
 		--repo ${GITHUB_REPO} \
 		--tag v${VERSION} \
-		--name ${APP}-v${VERSION} \
-		--file ${TARGETDIR}/${APP}
+		--name ${TARGETBIN} \
+		--file ${TARGETDIR}/${TARGETBIN}
 
 	github-release upload \
 		--user ${GITHUB_USER} \
 		--repo ${GITHUB_REPO} \
 		--tag v${VERSION} \
-		--name ${APP}-v${VERSION}.sha256sum \
-		--file ${TARGETDIR}/${APP}.sha256sum
+		--name ${TARGETBIN}.sha256sum \
+		--file ${TARGETDIR}/${TARGETBIN}.sha256sum
 
-		github-release upload \
-  		--user ${GITHUB_USER} \
-  		--repo ${GITHUB_REPO} \
-  		--tag v${VERSION} \
-  		--name ${APP}-v${VERSION}.asc \
-  		--file ${TARGETDIR}/${APP}.asc
+	github-release upload \
+		--user ${GITHUB_USER} \
+		--repo ${GITHUB_REPO} \
+		--tag v${VERSION} \
+		--name ${TARGETBIN}.asc \
+		--file ${TARGETDIR}/${TARGETBIN}.asc
 
 .PHONY: clean
 clean:
