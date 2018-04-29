@@ -50,7 +50,7 @@ $(TARGETDIR)/$(APP).asc:
 
 .PHONY: tag
 tag:
-	git tag -s -m "release v${VERSION}"
+	git tag -s -m "released version ${VERSION}" v${VERSION}
 
 .PHONY: push
 push:
