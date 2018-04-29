@@ -12,6 +12,9 @@ GID_NR:=$(shell id -g)
 PASSWD=$(shell pwd)/${BUILDDIR}/passwd
 HOMEDIR=$(shell pwd)/${BUILDDIR}/home
 
+GITHUB_USER=sdorra
+GITHUB_REPO=release-test
+
 .PHONY: default
 default: $(TARGETDIR)/$(APP) $(TARGETDIR)/$(APP).sha256sum $(TARGETDIR)/$(APP).asc
 
@@ -44,6 +47,44 @@ $(TARGETDIR)/$(APP).sha256sum:
 
 $(TARGETDIR)/$(APP).asc:
 	gpg --detach-sign -o $(TARGETDIR)/$(APP).asc $(TARGETDIR)/$(APP)
+
+.PHONY: tag
+tag:
+	git tag -s -m "release v${VERSION}"
+
+.PHONY: push
+push:
+	git push origin master --tags
+
+.PHONY: release
+release: default tag push
+	github-release release \
+		--user ${GITHUB_USER} \
+		--repo ${GITHUB_REPO} \
+		--tag v${VERSION} \
+		--name v${VERSION} \
+		--description "release version ${VERSION}"
+
+	github-release upload \
+		--user ${GITHUB_USER} \
+		--repo ${GITHUB_REPO} \
+		--tag v${VERSION} \
+		--name ${APP}-v${VERSION} \
+		--file ${TARGETDIR}/${APP}
+
+	github-release upload \
+		--user ${GITHUB_USER} \
+		--repo ${GITHUB_REPO} \
+		--tag v${VERSION} \
+		--name ${APP}-v${VERSION}.sha256sum \
+		--file ${TARGETDIR}/${APP}.sha256sum
+
+		github-release upload \
+  		--user ${GITHUB_USER} \
+  		--repo ${GITHUB_REPO} \
+  		--tag v${VERSION} \
+  		--name ${APP}-v${VERSION}.asc \
+  		--file ${TARGETDIR}/${APP}.asc
 
 .PHONY: clean
 clean:
