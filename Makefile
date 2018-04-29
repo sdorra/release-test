@@ -12,6 +12,9 @@ GID_NR:=$(shell id -g)
 PASSWD=$(shell pwd)/${BUILDDIR}/passwd
 HOMEDIR=$(shell pwd)/${BUILDDIR}/home
 
+.PHONY: default
+default: $(TARGETDIR)/$(APP) $(TARGETDIR)/$(APP).sha256sum $(TARGETDIR)/$(APP).asc
+
 $(TARGETDIR):
 	mkdir ${TARGETDIR}
 
@@ -41,14 +44,6 @@ $(TARGETDIR)/$(APP).sha256sum:
 
 $(TARGETDIR)/$(APP).asc:
 	gpg --detach-sign -o $(TARGETDIR)/$(APP).asc $(TARGETDIR)/$(APP)
-
-.PHONY: docker
-docker: $(TARGETDIR)/$(APP) $(TARGETDIR)/$(APP).sha256sum $(TARGETDIR)/$(APP).asc
-	docker build -t sdorra/${APP}:${VERSION} .
-
-.PHONY: run
-run: docker
-	docker run --rm -p 8080:8080 sdorra/${APP}:${VERSION}
 
 .PHONY: clean
 clean:
